@@ -1,0 +1,97 @@
+1.使用过的koa2中间件？
+koa-bodyparser 功能：解析请求体
+koa-static 功能：处理静态资源
+koa-router 功能：路由
+koa-jwt搭配jsonwebtoken 功能：实现jwt鉴权
+补充：用koa-jwt鉴权的时候，可以通过设置unless路径，使得某些api不用经过鉴权，比如登录接口：
+app.use(jwtKoa({secret}).unless({
+    path: [/^/api\/login/]
+}));
+koa-multer 功能：上传文件
+
+2.koa-body的原理
+koa-body自己的代码其实没几行，先处理一堆参数（大多是传给co-body和formidable用的），然后用type-is这个包（ctx.is函数）判断出请求的数据类型，然后根据不同类型用co-body和formidable来解析，拿到解析结果以后放到body或者files里面。
+type-is就是去匹配了下请求类型是什么(通过content-type来判断，而不是请求内容)
+co-body，代码结构很简单，提供了json、form、text这三种格式的解析，主要依赖的是inflation和raw-body，先贴一段text的，最简单，json和form也差不多，处理了一下参数（主要是encoding和limit参数），用inflation和raw-body解析了一把，返回，和koa-body一毛一样。
+关键一句话： return raw(inflate(req), opts);
+inflation比较简单，根据content-encoding的类型，做不同的操作，如果是gzip和deflate，调用zlib.Unzip解压缩，如果是identity，直接返回输入值。
+至于raw-body，它做的事情是stream解析。
+如果我们的数据类型是被type-is判断为multipart，那么就会调用formidable来进行解析，formidable本身也提供了很多种格式的解析，有json，multipart，urlencoded等，所以实际上co-body和formidable有点重叠，感觉上有formidable就够用了。
+
+3.介绍自己使用过的中间件？
+先介绍中间件原理：
+Koa2中间件，主要由四大部分构成，application、context、request、response构成，在application中通过use来注册我们所要使用的中间件，在createServer的时候传入一个回调函数，在这个回调函数里面，依次来执行我们的中间件。那么就是说，当我们的server监听到相应的请求之后，就会去执行这些注册的中间件。那么难点就来了，如何递归执行我们的中间件呢， koa2提供了一个compose函数，这也是koa2的核心中的核心，它通过遍历中间件，返回一个dispatch函数，这个dispatch函数是个递归调用函数，也就是在dispatch里面执行我们的响应的中间件。
+中间件的执行顺序并不是从头到尾，而是类似于前端的事件流。事件流是先进行事件捕获，到达目标，然后进行事件冒泡。中间件的实现过程也是一样的，先从最外面的中间件开始执行，next()后进入下一个中间件，一路执行到最里面的中间件，然后再从最里面的中间件开始往外执行。
+Koa中间件采用的是洋葱圈模型，每次执行下一个中间件传入两个参数ctx和next，参数ctx是由koa传入的封装了request和response的变量，可以通过它访问request和response, next就是进入下—个要执行的中间件。
+
+log 的中间件
+日志模块也是线上不可缺少的一部分，完善的日志系统可以帮助我们迅速地排查出线上的问题。通过Koa中间件，我们可以实现属于自己的日志模块
+// middleware/logger.js
+
+const fs = require('fs');
+
+module.exports = (options) => async (ctx,next){
+
+    const startTime = Date.now();
+
+    const requestTime = new Date();
+
+    await next();
+
+    const ms = Date.now - startTime;
+
+    let logout = `${ctx.request.ip}--${requestTime}--${ctx.method}--${ctx.url}--${ms}ms`;
+
+    // 输出日志文件
+
+    fs.appendFileSync('./log.txt',logout + '\n');
+
+}
+// app.js
+
+const Koa = require("koa");
+
+const app = new Koa();
+
+const logger = require("./middleware/logger");
+
+app.use(logger());
+
+app.listen(3000, () => {
+
+  console.log("server is running at http://localhost:3000");
+
+});
+
+4.Cluster
+集群
+
+5.介绍PM2
+pm2，作为node应用的进程管理器。可以实现node对应用的启动、监控、日志。其内建了负载均衡，可以让我们的node应用充分利用我们的cpu。其不光能够实现node应用进程的管理，也能管理一般的脚本程序。它甚至还有deploy功能，能够直接从本地部署我们的线上应用。非常强大的一款工具，我上家公司的上线打包工具就是基于pm2实现的， 通过一个命令即可完成项目的打包发布。
+
+6.Master挂了pm2如何处理?
+pm2可以通过fork产生多个独立进程实例。 这些实例能够在master挂掉后，随时替代maste
+
+7.如何与MySql通信？
+npm提供了mysql的node应用。在项目中，项目中引入mysql，通过调用connect方法，连接到远程数据库，拿到connection连接对象。 connect连接对象，提供了增删改查api，通过输入数据库脚本，完成与数据库的通信。 mysql还提供了连接池对象，通过它可以直接完成curd操作，当然也可以复用已有的连接池，减少连接开销。
+
+8.React生命周期以及自己的理解
+Reac1.5以前的生命周期这里就不多说了， React1.6以后生命周期总体概括分为三个部分。组件创建、更新、卸载三个阶段。创建时，依次顺序调用constructor、getDerivedStateFromProps、render、componentDidMount这四个生命周期函数，其中getDerivedStateFromProps主要用来将外部属性转换为自身状态，比较适用于组件既能被外部控制又能内部更新的场景。更新阶段，依次通过getDerivedStateFromProps、shouldComponentUpdate、render、getSnapshotBeforeUpdate、componentDidUpdate这个四个方法。 最后卸载时调用componentWillUnMount方法。
+
+9.如何配置React-Router
+配置React-Router，概括起来就是有大概三种方式：
+第一种，通过标签形式，例如 <Router/> 这样的标签，通过这样的标签来引入我们的组件，最后render的时候返回这样的Router就好了，这种方式比较简单，但是不能做一些比较个性化的事情。
+第二种，通过声明式配置的方式，声明一个对象，该对象是一个数组，可以更加灵活的配置我们的路由，可以配置我们跳转路由之前的操作，例如离开页面、进入页面，都能配置响应的回调事件。然后通过<Router routes={routerConfig} />这种方式来应用我们的配置。
+第三种，按需加载的方式，在大型应用中，性能是一个很重要的问题，按需要加载JS是一种优化性能的方式。在React router中不仅组件是可以异步加载的，路由也是允许异步加载的。Route 可以定义getChildRoutes，getIndexRoute 和 getComponents这几个函数，他们都是异步执行的，并且只有在需要的时候才会调用。这种方式需要配合webpack中有实现代码拆分功能的工具来用。
+
+10.服务端渲染 SSR
+传统的服务端渲染SSR，主要是通过在服务端组装html，组装的html已经是结合了css，并执行了js，返回给客户端，直接就可以展示，客户端省去了解析html和渲染css的工作。在这种开发模式下，服务端与前端的分工变得模糊，前后端分离的目标并没有达到。虽然利于SEO，但是服务端的压力比较大。
+Node.js技术浪潮袭来之后，服务端渲染主要有node中间件来完成了，这样保证了，前后端分工仍然明确。并且node技术框架下，有大量优秀的服务端渲染工具可以选择，例如中间件架构，我们可以选择的express、koa、egg等， 视图模版，我们有pug(jade)、handlebars、art-template、ejs 等等工具， React体系下有next.js，Vue体系下有Nuxt.js。
+补充next.js
+页面SSR 钩子以及SSG
+大部分的应用内容，都不是纯静态的，我们需要数据查询才能渲染那个页面，而这些就需要同构钩子函数来满足，有了这些钩子函数，我们才可以在不同需求下作出极佳体验的web应用。
+​​getServerSideProps​​（SSR）每次访问时请求数据。
+所谓的SSG也就是静态站点生成，类似像hexo或者​ ​gatsbyjs​​都是在build阶段将页面构建成静态的html文件，这样线上直接访问HTML文件，性能极高。
+如何选择SSR还是SSG？
+如果页面内容真动态(例如，来源数据库，且经常变化)， 使用​​getServerSideProps​​方法的SSR。
+如果是静态页面或者伪动态(例如，来源数据库，但是不变化)，可以酌情使用SSG。
