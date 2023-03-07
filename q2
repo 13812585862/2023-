@@ -1,0 +1,39 @@
+1.介绍路由的history
+hash模式 ：使用 URL 的 hash 来模拟一个完整的 URL, 其显示的网络路径中会有 “#” 号。hash 虽然出现URL中，但不会被包含在HTTP请求中，对后端完全没有影响，因此改变hash后刷新, 也不会有
+问题
+history模式： 美化后的hash模式，路径中不包含“#”。依赖于Html5 的 history api。由于改变了地址, 刷新时会按照修改后的地址请求后端, 需要后端配置处理, 将地址访问做映射, 否则会404
+补充：history.pushState(state, title[, url])。popstate类似于一个事件函数，当用户在浏览器点击后退、前进，或者在js中调用histroy.back()，history.go()，history.forward()等
+，会触发popstate事件；但pushState、replaceState
+不会触发这个事件。利用这一特性，我们可以在用户前进或者返回页面的时候做一些事情
+
+2.redux数据流的流程
+组件里都是通过 dispatch 一个 action 来触发 store 的修改，而且修改的逻辑都是在 reducer 里面，组件再监听 store 的数据变化，从中取出最新的数据。
+这样数据流动是单向的，清晰的，很容易管理。这就像为什么我们在公司里想要什么权限都要走审批流，而不是直接找某人，一样的道理。集中管理流程比较清晰，而且还可以追溯
+redux saga 的异步过程管理就是这样的：先把 action 透传给 store，然后判断 action 是否是被 taker 监听的，如果是，则调用对应的 worker saga 进行处理。
+redux saga 在 redux 的 action 流程之外，加了一条监听 action 的异步处理的流程。
+总结：
+相比 context 的混乱的数据流，redux 的 view -> action -> store -> view 的单向数据流更清晰且容易管理。
+前端代码中有很多异步过程，这些异步过程之间可能有串行、并行甚至更复杂的关系，放在组件里并不好管理，可以放在 redux 的中间件里。
+redux 的中间件就是对 dispatch 的层层包装，比如 redux-thunk 就是判断了下 action 是 function 就执行下，否则就是继续 dispatch。
+redux-thunk 并没有提供多个异步过程管理的机制，复杂异步过程的管理还是得用 redux-saga 或者 redux-observable。
+redux-saga 透传了 action 到 store，并且监听 action 执行相应的异步过程。异步过程的描述使用 generator 的形式，好处是可测试性。
+比如通过 take、takeEvery、takeLatest 来监听 action，然后执行 worker saga。worker saga 
+可以用 put、call、fork 等 effect 来描述不同的副作用，由 task 负责执行。
+redux-observable 同样监听了 action 执行相应的异步过程，但是是基于 rxjs 的 operator，相比 saga 来说，异步过程的管理功能更强大。
+不管是 redux-saga 通过 generator 来组织异步过程，通过内置 effect 来处理多个异步过程之间的关系，还是 redux-observable 
+通过 rxjs 的 operator 来组织异步过程和多个异步过程之间的关系。它们都解决了复杂异步过程的处理的问题，可以根据场景的复杂度灵活选用。
+
+3.redux怎么实现组件通信，多个组件使用相同状态怎么管理
+redux是通过属性传递数据实现的
+react中使用redux
+1.connect方法拓展组件 接收state 和dispatch
+2.通过Provider组件提供store数据源
+让其它组件接收state数据和dispatch方法两种方式
+1.可以通过父子通信的方法，传递数据和方法
+2.继续使用connect方法得到的高阶函数去拓展组件
+多个组件实现数据共享，可以用
+1定义一个Person组件，和Count组件通过redux共享数据。
+2为Person组件编写：reducer、action，配置constant常量。
+3️重点：Person的reducer和Count的Reducer要使用combineReducers进行合并。合并后的总状态是一个对象！！！
+4️交给store的是总reducer，最后注意在组件中取出状态的时候，记得“取到位”。
+
