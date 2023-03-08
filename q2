@@ -37,3 +37,72 @@ react中使用redux
 3️重点：Person的reducer和Count的Reducer要使用combineReducers进行合并。合并后的总状态是一个对象！！！
 4️交给store的是总reducer，最后注意在组件中取出状态的时候，记得“取到位”。
 
+4.居中为什么使用transform不用margin
+因为transfrom是独立的层，而margin会导致重绘和回流
+transform:是通过创建一个renderLayers(渲染)合成层，拥有独立的graphicsLayers(绘图层)。每一个绘图层都有一个绘图区域，其对应的渲染会绘制进绘图区域，
+合成器（compositor）最终会负责将由绘图区域输出的位图合并成最终屏幕展示图案。
+margin会改变render的tree的结构，必定引起重绘和回流
+上面提到的，transfrom实际上就用到GPU加速的。也就是会占用内存。由此可见创建绘图层，虽然洁身了layout,
+但是layer创建的越多，占用内存的就会越大。而过多的渲染开销会超过性能的改善。
+补充：解释一下什么样的条件是独立的合成层。
+1.3D或者perspective transform的css属性层
+2. video元素的层
+3.canvas元素的层
+4. flash
+5.对opacity和transform应用的css动画层
+6.使用css滤镜filters的层 
+7 .有合成层后代的层
+8. 同合成层重叠，且在该合成层上面渲染的层
+
+5.常见的http请求头
+1-1 Accept
+1、 Accept ： text/html 浏览器可以接收服务器回发的类型为text/html
+2、 Accept： */*代表浏览器可以处理所有类型
+1-2 Accept-Encoding
+1、 Accept-Encoding： gzip，deflate 浏览器申明自己接收的编码方法，通常指定压缩方法，是否支持压缩，支持什么压缩方法（gzip，deflate）
+1-3 Accept-Language zh-CN,zh;q=0.9
+1-4 Connection
+1、 Connection: keep-alive 当一个网页打开完成后，客户端和服务器之间用于传输HTTP数据的TCP连接不会关闭，如果客户端再次访问这个服务器上的网页，会继续使用这一条已经建立的连接。
+2、 Connection: close 代表一个Request完成后，客户端和服务器之间用于传输HTTP数据的TCP连接会关闭， 当客户端再次发送Request，需要重新建立TCP连接。
+1-5 Host (发送请求时，该报头域是必须)
+1、 Host： 请求报头域主要用于指定该请求资源的Internet主机和端口号，通常从HTTP URL中提取出来
+1-6 Referer
+1、 Referer： 当浏览器向Web服务器发送请求时，一般会带上Refer，告诉服务器从哪个页面链接过来的，服务器可以获得一些信息用于处理
+1-7 Cache-Control
+1、 Cache-Control ：
+Cache-Control:private ： 默认为private 响应只能够作为私有的缓存，不能再用户间共享
+Cache-Control:public** **响应会被缓存，并且在多用户间共享。正常情况, 如果要求HTTP认证,响应会自动设置为 private.
+Cache-Control:must-revalidate 响应在特定条件下会被重用，以满足接下来的请求，但是它必须到服务器端去验证它是不是仍然是最新的。
+Cache-Control:no-cache 响应不会被缓存,而是实时向服务器端请求资源。
+Cache-Control:max-age=10 设置缓存最大的有效时间，但是这个参数定义的是时间大小（比如：60）而不是确定的时间点。单位是[秒 seconds]。
+Cache-Control:no-store在任何条件下，响应都不会被缓存，并且不会被写入到客户端的磁盘里，这也是基于安全考虑的某些敏感的响应才会使用这个。
+1-8 Cookie
+1、 Cookie是用来存储一些用户信息以便让服务器辨别用户身份的（大多数需要登录的网站上面会比较常见）
+2、 例子： cookie会存储一些用户的用户名和密码，当用户登录后就会在客户端产生一个cookie来存储相关信息，这样浏览器通过读取cookie的信息去服务器上验证并通过后会判定你是合法用户
+从而允许查看相应网页。
+3、 还有很多信息可以存储是cookie里面，比如sessionid等。
+4、 document.cookie = "name='ntt'; path='/frontend';expires='';secure"
+1-9 Range（用于断点续传）
+响应头：
+Access-Control-Allow-Credentials
+Access-Control-Allow-Credentials: true ，允许发送cookie。
+Cookie不包括在CORS请求之中。
+Cookie可以包含在请求中，一起发给服务器。这个值也只能设为true
+如果服务器不要浏览器发送Cookie，删除该字段即可。如果access-control-allow-origin为*，当前字段就不能为true
+Vary是作为响应头由服务器端返回数据时添加的头部信息；
+Vary头的内容来自于当前请求的Request头部Key，比如Accept-Encoding、User-Agent等；
+缓存服务器进行某接口的网络请求结果数据缓存时，会将Vary一起缓存；
+HTTP请求，缓存中Vary的内容会作为当前缓存数据是否可以作为请求结果返回给客户端的判断依据；
+HTTP请求，响应数据中的Vary用来判断当前缓存中同请求的数据的Vary是否失效，如果缓存中的Vary与服务器刚拿到的Vary不一致，则可以进行更新。
+当Vary的值为“*”，意味着请求头中的所有信息都不可作为是否从缓存服务器拿数据的判断依据。
+
+6.dev-server是怎么跑起来的
+  webpack-dev-server 可以作为命令行工具使用，核心模块依赖是 webpack 和 webpack-dev-middleware。webapck-dev-server 负责启动一个 express 服务器监听客户端请求
+；实例化 webpack compiler；启动负责推送 webpack 编译信息的 webscoket 服务器；负责向 bundle.js 注入和服务端通信用的 webscoket 客户端代码和处理逻辑。
+webapck-dev-middleware 把 webpack compiler 的 outputFileSystem 改为 in-memory fileSystem；启动 webpack watch 编译；处理浏览器发出的静态资源的请求，
+把 webpack 输出到内存的文件响应给浏览器。
+  每次 webpack 编译完成后向客户端广播 ok 消息，客户端收到信息后根据是否开启 hot 模式使用 liveReload 页面级刷新模式或者 hotReload 模块热替换。hotReload 存在失败的情况，
+失败的情况下会降级使用页面级刷新。
+  开启 hot 模式，即启用 HMR 插件。hot 模式会向服务器请求更新过后的模块，然后对模块的父模块进行回溯，对依赖路径进行判断，如果每条依赖路径都配置了模块更新后所需的业务处理回调函数
+则是 accepted 状态，否则就降级刷新页面。判断 accepted 状态后对旧的缓存模块和父子依赖模块进行替换和删除，然后执行 accept 方法的回调函数，执行新模块代码，引入新模块，
+执行业务处理代码。
