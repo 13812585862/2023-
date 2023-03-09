@@ -106,3 +106,29 @@ webapck-dev-middleware 把 webpack compiler 的 outputFileSystem 改为 in-memor
   开启 hot 模式，即启用 HMR 插件。hot 模式会向服务器请求更新过后的模块，然后对模块的父模块进行回溯，对依赖路径进行判断，如果每条依赖路径都配置了模块更新后所需的业务处理回调函数
 则是 accepted 状态，否则就降级刷新页面。判断 accepted 状态后对旧的缓存模块和父子依赖模块进行替换和删除，然后执行 accept 方法的回调函数，执行新模块代码，引入新模块，
 执行业务处理代码。
+
+7.for in of的区别
+1.for in 循环下标 string类型不是number类型
+forof   循环的是item
+2.for in 可以获取原型上的所有的方法和属性   for of 不行 
+3.for in 可以循环对象  for of会报错
+引申：手写实现for of 报错
+  Object.prototype[Symbol.iterator]=function(){
+     let _this= this;
+     let index = 0
+     let length= Object.keys(_this).length
+     return {
+      next: ()=>{
+       let value= _this[Object.keys(_this)[index]]
+       let done = index >= length
+       index++
+       return {
+        value , 
+        done
+       }
+      }
+     }
+      }
+    for(let i of {a:1,b:2}){
+      console.log(i)
+    }
