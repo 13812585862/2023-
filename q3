@@ -1,0 +1,34 @@
+1.深拷贝实现
+  hh() {
+      let obj = {
+        a: 1,
+        b: function() {},
+        c: [
+          {
+            d: 1,
+            e: { f: 3 }
+          }
+        ],
+        g: null,
+        j: undefined
+      }
+
+      const ss = this.DeepClone(obj)
+      ss.c[0].d = 'hhhhhh'
+      console.log('see', ss, obj === ss, ss.c[0].d, obj.c[0].d)
+    },
+    DeepClone(source) {
+      let target = Array.isArray(source) ? [] : {}
+      if (typeof source === 'object') {
+        for (let key in source) {
+          if (Object.prototype.hasOwnProperty.call(source, key)) {
+            if (source[key] && typeof source[key] === 'object') {
+              target[key] = this.DeepClone(source[key])
+            } else {
+              target[key] = source[key]
+            }
+          }
+        }
+      }
+      return target
+    },
