@@ -32,3 +32,29 @@
       }
       return target
     },
+2.函数科里化
+curry(fn) {
+      const len = fn.length //形参个数
+      return function t() {
+        let gs = arguments.length //实参个数
+        let args = Array.prototype.slice.call(arguments) //伪数组转化为数组
+        if (gs >= len) {
+          return fn.apply(undefined, args)
+        } else {
+          return function() {
+            const newArgs = args.concat(Array.prototype.slice.call(arguments))
+            return t.apply(undefined, newArgs)
+          }
+        }
+      }
+    },
+    add(a, b, c, d, e) {
+      return a + b + c + d + e
+    },
+    sf() {
+      const finallFun = this.curry(this.add)
+      const result1 = finallFun(1)(2)(3)(4)(5)
+      const result2 = finallFun(1, 2)(3, 4)(5)
+      const result3 = finallFun(1)(2)(3)(4)(5)(6)
+      console.log(result1, result2, result3)
+    },
